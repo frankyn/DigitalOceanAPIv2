@@ -5,11 +5,11 @@ import pytz
 from datetime import *
 import requests
 import argparse
-
+import os
 
 
 # API_TOKEN
-API_TOKEN="68520ffceef5f7c99c137aa98e57f9fee37d97a0dd8782243e010c7219774218"
+API_TOKEN=None
 
 def account_request():
 	# Request digital ocean droplets
@@ -248,6 +248,25 @@ def create_handler(args):
 	# Check if required arguments are filled.
 	pass
 
+# Load AUTH token
+def load_token():
+	global API_TOKEN
+	
+	which_script_path = os.path.dirname(__file__)
+	which_script_path += '/.auth_token'
+	
+	try:
+		with open(which_script_path,'r') as f:
+			API_TOKEN = f.read()
+
+	except:
+		print 'Please enter your DigitalOcean auth token:'
+		API_TOKEN = str(raw_input('->'))
+		with open(which_script_path,'w+') as f:
+			f.write(API_TOKEN)
+	
+
+
 # Request to delete droplet
 def request_delete(droplet_id):
 	# Request digital ocean droplets
@@ -271,6 +290,8 @@ def delete_handler(args):
 
 
 if __name__ == "__main__":
+	# load token
+	load_token()
 	# Process arguments
 	parser = argparse.ArgumentParser(description='''
 			Get important information from DigitalOcean API.

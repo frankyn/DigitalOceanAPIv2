@@ -12,6 +12,7 @@ import json
 # API_TOKEN
 API_TOKEN=None
 
+# Request Account Information
 def account_request():
 	# Request digital ocean droplets
 	r = requests.get('https://api.digitalocean.com/v2/account',
@@ -36,13 +37,31 @@ def account_handler():
 	uuid = account['uuid']
 	print(line_format.format(droplet_limit, email, uuid))
 
-	# Process JSON and print status of servers
-	# for droplet in information['droplets']:
-	# 	droplet_id = droplet['id']
-	# 	droplet_name = droplet['name']
-	# 	droplet_ip = droplet['networks']['v4'][0]['ip_address']
-	# 	print(droplet['created_at'])
-	# 	print(line_format.format(droplet_id,droplet_name[:20],droplet_ip))
+# Request Actions list
+def droplet_actions_request(droplet_id):
+	# Request digital ocean droplets
+	r = requests.get(('https://api.digitalocean.com/v2/droplets/%d/actions'%droplet_id),
+					  auth=(API_TOKEN,""))
+	
+	# Get json
+	information = r.json()
+	return information
+
+# Handle Action Request
+def droplet_actions_handler(args):
+	# Request Actions information
+	information = droplet_actions_request(args.droplet_actions)
+
+	# Parse infromation
+	actions_total = information['meta']['total']
+	actions = information['actions']
+
+	line_format = '{0:^15} {1:^20}'
+	print(line_format.format('Type','Status'))
+	for action in actions:
+		print(line_format.format(action['type'],action['status']))
+
+
 
 # Request droplet list
 def request_droplets():
@@ -355,13 +374,18 @@ if __name__ == "__main__":
 	load_token()
 	# Process arguments
 	parser = argparse.ArgumentParser(description='''
-			Get important information from DigitalOcean API.
-			''')
+		Get important information from DigitalOcean API.
+	''')
 	
 	# Account Information
 	parser.add_argument("--account", const=True, default=False,
 				action="store_const", dest="account",
 				help="Request account information")
+
+	# Actions List
+	parser.add_argument("--droplet_actions", default=False,
+				type=int, dest="droplet_actions",
+				help="Request droplet actions list")
 
 	# Status of Droplets
 	parser.add_argument("--status", const=True, default=False, 
@@ -392,19 +416,8 @@ if __name__ == "__main__":
 
 	# Droplet information
 	parser.add_argument("--create", default=None, nargs='+', 
-				dest="create", help="create a new droplet") 
-
-	# parser.add_argument("--name", type=str, default=None, dest="droplet_name",
-	# 			help="droplet name")
-	# parser.add_argument("--region", type=str, default=None, 
-	# 			dest="droplet_region", help="droplet region slug identifer")
-	# parser.add_argument("--size", type=str, default=None, dest="droplet_size",
-	# 			help="droplet size slug identifier")
-	# parser.add_argument("--image", type=str, default=None,dest="droplet_image",
-	# 			help="droplet image slug identifier")
-	# parser.add_argument("--sshkeys", type=list, default=None, 
-	# 			dest="droplet_sshkeys", help="droplet ssh keys")	
-
+				dest="create", 
+				help="name region size image ssh_keys(optional)") 
 
 	# Droplet Delete
 	parser.add_argument("--delete", type=str, default=False,
@@ -415,6 +428,8 @@ if __name__ == "__main__":
 	
 	if args.account:
 		account_handler()
+	elif args.droplet_actions:
+		droplet_actions_handler(args)
 	elif args.status:
 		status_handler()
 	elif args.regions:

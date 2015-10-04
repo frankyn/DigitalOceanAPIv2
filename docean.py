@@ -6,6 +6,7 @@ from datetime import *
 import requests
 import argparse
 import os
+import json
 
 
 # API_TOKEN
@@ -13,7 +14,7 @@ API_TOKEN=None
 
 def account_request():
 	# Request digital ocean droplets
-	r = requests.get('http://api.digitalocean.com/v2/account',
+	r = requests.get('https://api.digitalocean.com/v2/account',
 					  auth=(API_TOKEN,""))
 	
 	# Get json
@@ -46,7 +47,7 @@ def account_handler():
 # Request droplet list
 def request_droplets():
 	# Request digital ocean droplets
-	r = requests.get('http://api.digitalocean.com/v2/droplets',
+	r = requests.get('https://api.digitalocean.com/v2/droplets',
 					  auth=(API_TOKEN,""))
 	
 	# Get json
@@ -117,7 +118,7 @@ def status_handler():
 # Request regions
 def request_regions():
 	# Request digital ocean regions
-	r = requests.get('http://api.digitalocean.com/v2/regions',
+	r = requests.get('https://api.digitalocean.com/v2/regions',
 					  auth=(API_TOKEN,""))
 	
 	# Get json
@@ -147,7 +148,7 @@ def regions_handler():
 # Request images 
 def request_images():
 	# Request digital ocean ssh keys
-	r = requests.get('http://api.digitalocean.com/v2/images',
+	r = requests.get('https://api.digitalocean.com/v2/images',
 					  auth=(API_TOKEN,""))
 	
 	# Get json
@@ -182,7 +183,7 @@ def images_handler():
 # Request SSH Key List
 def request_keylist():
 	# Request digital ocean ssh keys
-	r = requests.get('http://api.digitalocean.com/v2/account/keys',
+	r = requests.get('https://api.digitalocean.com/v2/account/keys',
 					  auth=(API_TOKEN,""))
 	
 	# Get json
@@ -209,7 +210,7 @@ def keylist_handler():
 # Request sizes list	
 def request_sizes():
 	# Request digital ocean ssh keys
-	r = requests.get('http://api.digitalocean.com/v2/sizes',
+	r = requests.get('https://api.digitalocean.com/v2/sizes',
 					  auth=(API_TOKEN,""))
 	
 	# Get json
@@ -225,7 +226,7 @@ def sizes_handler():
 	# format for display
 	line_format = '{0:^10} ${1:<15} ${2:<15} {3:<10} {4:<10} {5:<10}'
 	print(line_format.format('Slug','Price(M)','Price(H)',
-							 'Memory','VCPUS','Disk','Regions'))
+							 'Memory','Disk','Regions'))
 
 	# Process JSON and print status of servers
 	for size in information['sizes']:
@@ -240,13 +241,73 @@ def sizes_handler():
 	
 			print(line_format.format(size_slug,size_price_monthly, 
 									 size_price_hourly, size_memory,
-									 size_disk, size_regions))
+									 str(size_disk)+'GB', size_regions))
 		
+# 
+# create a droplet
+def request_create(name, region, size, image, ssh_keys=[]):
+	# headers 
+	headers = {'Content-Type': 'application/json'}
+
+	# payload
+	payload = {
+				"name": name,
+				"region": region,
+				"size": size,
+				"image": image,
+				"ssh_keys": ssh_keys
+			  }
+
+	
+	# Request digital ocean ssh keys
+	r = requests.post('https://api.digitalocean.com/v2/droplets',
+					  auth=(API_TOKEN,""),
+					  headers=headers,
+					  data=json.dumps(payload))
+	
+	# Get json
+	information = r.json()
+	return (r.status_code,information)
+	
+
 
 # Handle Create Handler
 def create_handler(args):
 	# Check if required arguments are filled.
-	pass
+	create_args = args.create
+	droplet_name = None
+	droplet_region = None
+	droplet_size = None
+	droplet_image = None
+	droplet_sshkeys = []
+
+	if len(create_args) < 4:
+		print('Please provide all required arguments')
+		return
+	elif len(create_args) > 4:
+		droplet_name = create_args[0]
+		droplet_region = create_args[1]
+		droplet_size = create_args[2]
+		droplet_image = create_args[3]
+		droplet_sshkeys = create_args[4].split(',')
+	else:
+		droplet_name = create_args[0]
+		droplet_region = create_args[1]
+		droplet_size = create_args[2]
+		droplet_image = create_args[3]
+
+	# Create a new droplet
+	status,new_droplet = request_create(droplet_name, droplet_region, 
+								 droplet_size, droplet_image, 
+								 droplet_sshkeys)
+
+	# Check status
+	if status == 202:
+		droplet = new_droplet['droplet']
+		print('Droplet %s (%d) was created'%(droplet_name,droplet['id']))
+
+	else:
+		print("Error creating a new droplet")
 
 # Load AUTH token
 def load_token():
@@ -270,7 +331,7 @@ def load_token():
 # Request to delete droplet
 def request_delete(droplet_id):
 	# Request digital ocean droplets
-	r = requests.delete(('http://api.digitalocean.com/v2/droplets/%s'%droplet_id),
+	r = requests.delete(('https://api.digitalocean.com/v2/droplets/%s'%droplet_id),
 					  auth=(API_TOKEN,""))
 	# Get json
 	if r.status_code == 204:
@@ -330,19 +391,19 @@ if __name__ == "__main__":
 
 
 	# Droplet information
-	parser.add_argument("--create", const=True, default=False, 
-				action="store_const", dest="create",
-				help="create a new droplet") 
-	parser.add_argument("--name", type=str, default=None, dest="droplet_name",
-				help="droplet name")
-	parser.add_argument("--region", type=str, default=None, 
-				dest="droplet_region", help="droplet region slug identifer")
-	parser.add_argument("--size", type=str, default=None, dest="droplet_size",
-				help="droplet size slug identifier")
-	parser.add_argument("--image", type=str, default=None,dest="droplet_image",
-				help="droplet image slug identifier")
-	parser.add_argument("--sshkeys", type=list, default=None, 
-				dest="droplet_sshkeys", help="droplet ssh keys")	
+	parser.add_argument("--create", default=None, nargs='+', 
+				dest="create", help="create a new droplet") 
+
+	# parser.add_argument("--name", type=str, default=None, dest="droplet_name",
+	# 			help="droplet name")
+	# parser.add_argument("--region", type=str, default=None, 
+	# 			dest="droplet_region", help="droplet region slug identifer")
+	# parser.add_argument("--size", type=str, default=None, dest="droplet_size",
+	# 			help="droplet size slug identifier")
+	# parser.add_argument("--image", type=str, default=None,dest="droplet_image",
+	# 			help="droplet image slug identifier")
+	# parser.add_argument("--sshkeys", type=list, default=None, 
+	# 			dest="droplet_sshkeys", help="droplet ssh keys")	
 
 
 	# Droplet Delete

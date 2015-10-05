@@ -8,6 +8,9 @@ import argparse
 import os
 import json
 
+# hack for disabling warnings from requests module...
+requests.packages.urllib3.disable_warnings()
+
 '''
 	DigitalOcean V2 API Wrapper
 '''
@@ -250,7 +253,7 @@ class DOceanCLI:
 				self._auth_token = f.read()
 
 		except:
-			print 'Please enter your DigitalOcean auth token:'
+			print('Please enter your DigitalOcean auth token:')
 			self._auth_token = str(raw_input('->'))
 			with open(which_script_path,'w+') as f:
 				f.write(self._api_token)

@@ -9,7 +9,8 @@ import os
 import json
 
 # hack for disabling warnings from requests module...
-requests.packages.urllib3.disable_warnings()
+# Caused problems....
+# requests.packages.urllib3.disable_warnings()
 
 '''
 	DigitalOcean V2 API Wrapper

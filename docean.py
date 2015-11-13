@@ -45,7 +45,7 @@ class DOcean:
     # Request droplet list
     def request_droplets(self):
         # Request digital ocean droplets
-        r = requests.get('https://api.digitalocean.com/v2/droplets',
+        r = requests.get('https://api.digitalocean.com/v2/droplets?page=1&per_page=50',
                          auth=(self._api_token, ""))
 
         # Get json

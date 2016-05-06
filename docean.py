@@ -45,8 +45,11 @@ class DOcean:
     # Request droplet list
     def request_droplets(self):
         # Request digital ocean droplets
-        r = requests.get('https://api.digitalocean.com/v2/droplets?page=1&per_page=50',
+        r = requests.get('https://api.digitalocean.com/v2/droplets?page=1&per_page=100',
                          auth=(self._api_token, ""))
+
+        # Continue request if there's a paginated response :D
+
 
         # Get json
         information = r.json()
@@ -364,7 +367,6 @@ class DOceanCLI:
             droplet_monthly_cost = sizes[droplet_size_index]['price_monthly']
             droplet_hourly_cost = sizes[droplet_size_index]['price_hourly']
             droplet_created_at = droplet['created_at']
-
             droplet_cost = self._docean.calc_droplet_cost(droplet_monthly_cost,
                                                           droplet_hourly_cost,
                                                           droplet_created_at)
